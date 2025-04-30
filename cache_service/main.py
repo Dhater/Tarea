@@ -1,4 +1,5 @@
 import psycopg2
+import numpy as np
 import redis
 import os
 import random
@@ -63,13 +64,30 @@ def generate_traffic():
     total_requests = 10000
     hits = 0
 
-    # ✅ Aquí defines las variables
+    # Configuración de distribución
+    distribution_mode = "aleatoria"
+    poisson_lambda = float(5000)
+    normal_mean = float(5000)
+    normal_std_dev = float(1500)
+
+    # Configuración de Redis
     policy = "allkeys-lru"
     max_memory = 2097152
 
     for request in range(total_requests):
         try:
-            random_id = random.randint(1, 10000)
+            # Generar ID según la distribución seleccionada
+            if distribution_mode == 'poisson':
+                raw_id = np.random.poisson(poisson_lambda)
+                random_id = int(raw_id)
+                random_id = max(1, min(random_id, 10000))
+            elif distribution_mode == 'normal':
+                raw_id = random.gauss(normal_mean, normal_std_dev)
+                random_id = int(raw_id)
+                random_id = max(1, min(random_id, 10000))
+            else:
+                random_id = random.randint(1, 10000)
+
             print(f"[TRAFFIC] Generando tráfico con id: {random_id}, [Request] {request}")
 
             redis_client = connect_redis()
@@ -121,7 +139,7 @@ def generate_traffic():
     hit_percent = (hits / total_requests) * 100
     print(f"[RESULTADO] Se han registrado {hits} hits de caché.")
     print(f"[RESULTADO] Porcentaje de aciertos: {hit_percent:.2f}%")
-    print(f"[CONFIG] Redis configurado: política={policy}, tamaño={max_memory}")
+    print(f"[CONFIG] Redis configurado: política={policy}, tamaño={max_memory}, distribucion {distribution_mode}")
 
     print("[ESPERA] Finalizado. Esperando indefinidamente para análisis externo.")
     while True:
