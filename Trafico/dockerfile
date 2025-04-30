@@ -1,0 +1,18 @@
+FROM python:3.10-slim
+
+WORKDIR /app
+
+# Copiar requirements.txt y el código
+COPY requirements.txt .
+COPY main.py .
+
+# Instalar dependencias necesarias para psycopg2 y otras
+RUN apt-get update && \
+    apt-get install -y libpq-dev gcc python3-dev curl && \
+    apt-get install -y libpq5 && \
+    pip install --no-cache-dir -r requirements.txt && \
+    apt-get purge -y --auto-remove gcc python3-dev libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Establecer el comando para ejecutar el servicio
+CMD [ "python", "-u", "main.py" ]

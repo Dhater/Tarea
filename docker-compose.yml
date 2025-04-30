@@ -1,0 +1,102 @@
+version: "3.9"
+
+services:
+  scraper:
+    build: ./scraper
+    container_name: scraper
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=mi_basededatos
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=user
+      - REDIS_HOST=redis
+      - PYTHONUNBUFFERED=1
+    networks:
+      - red_scraper
+    volumes:
+      - ./scraper:/app
+      - /app/venv
+
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    environment:
+      - POSTGRES_DB=mi_basededatos
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=user
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - red_scraper
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d mi_basededatos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: redis
+    command: redis-server --maxmemory 2gb --maxmemory-policy allkeys-lru --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - red_scraper
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+
+  cache_service:
+    build: ./cache_service
+    environment:
+      - REDIS_HOST=redis
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=mi_basededatos
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=user
+      - PYTHONUNBUFFERED=1
+    container_name: cache_service
+    ports:
+      - "5000:5000"
+    networks:
+      - red_scraper
+    volumes:
+      - ./cache_service:/app
+      - /app/venv
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  trafico:
+    build: ./trafico
+    container_name: trafico
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=mi_basededatos
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=user
+      - CACHE_SERVICE_URL=http://cache_service:5000  # Aquí usas el nombre del servicio
+      - PYTHONUNBUFFERED=1
+    networks:
+      - red_scraper
+    volumes:
+      - ./trafico:/app
+      - /app/venv
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+
+networks:
+  red_scraper:
+
+volumes:
+  redis_data:
+  postgres_data:

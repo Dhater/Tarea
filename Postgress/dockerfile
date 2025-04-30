@@ -1,0 +1,7 @@
+# Usamos la imagen base oficial de PostgreSQL
+FROM postgres:16
+
+# Si deseas agregar algún script de inicialización, puedes copiarlo aquí
+# COPY ./init.sql /docker-entrypoint-initdb.d/
+
+# Si tienes alguna personalización, la puedes agregar aquí
