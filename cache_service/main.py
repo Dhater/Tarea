@@ -65,7 +65,7 @@ def generate_traffic():
 
     # ✅ Aquí defines las variables
     policy = "allkeys-lru"
-    max_memory = "256mb"
+    max_memory = 2097152
 
     for request in range(total_requests):
         try:
