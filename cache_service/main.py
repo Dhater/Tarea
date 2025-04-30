@@ -27,6 +27,18 @@ def connect_redis():
         print(f"[ERROR] Error al conectar a Redis: {e}")
         return None
 
+# Configurar Redis (política de remoción y tamaño máximo)
+def configure_redis(redis_client, policy, max_memory):
+    try:
+        redis_client.config_set('maxmemory-policy', policy)
+        redis_client.config_set('maxmemory', max_memory)
+        print(f"[CONFIG] Redis configurado: política={policy}, tamaño={max_memory}")
+        return policy, max_memory
+    except Exception as e:
+        print(f"[ERROR] No se pudo configurar Redis: {e}")
+        return None, None
+
+
 # Limpiar el caché de Redis
 def clear_cache():
     redis_client = connect_redis()
@@ -51,6 +63,10 @@ def generate_traffic():
     total_requests = 10000
     hits = 0
 
+    # ✅ Aquí defines las variables
+    policy = "allkeys-lru"
+    max_memory = "256mb"
+
     for request in range(total_requests):
         try:
             random_id = random.randint(1, 10000)
@@ -59,8 +75,12 @@ def generate_traffic():
             redis_client = connect_redis()
             if not redis_client:
                 print("[ERROR] Error en la conexión a Redis.")
-                time.sleep(2)
+                time.sleep(.1)
                 continue
+
+            # ✅ Solo configurar una vez
+            if request == 0:
+                policy, max_memory = configure_redis(redis_client, policy, max_memory)
 
             cache_key = f"eventos:{random_id}"
             cached_data = redis_client.get(cache_key)
@@ -73,7 +93,7 @@ def generate_traffic():
                 postgres_conn = connect_postgres()
                 if not postgres_conn:
                     print("[ERROR] Error en la conexión a PostgreSQL.")
-                    time.sleep(2)
+                    time.sleep(.1)
                     continue
 
                 try:
@@ -98,16 +118,15 @@ def generate_traffic():
         except Exception as e:
             print(f"[ERROR] Error al generar tráfico: {e}")
 
-        # Puedes descomentar esta línea si necesitas reducir carga
-        # time.sleep(0.001)
-
     hit_percent = (hits / total_requests) * 100
     print(f"[RESULTADO] Se han registrado {hits} hits de caché.")
     print(f"[RESULTADO] Porcentaje de aciertos: {hit_percent:.2f}%")
+    print(f"[CONFIG] Redis configurado: política={policy}, tamaño={max_memory}")
 
     print("[ESPERA] Finalizado. Esperando indefinidamente para análisis externo.")
     while True:
         time.sleep(60)
+
 
 # Punto de entrada
 if __name__ == '__main__':
