@@ -1,0 +1,39 @@
+FROM openjdk:11
+
+# Instala paquetes necesarios, ssh, hadoop, wget, etc.
+RUN apt-get update && \
+    apt-get install -y wget tar ssh net-tools procps && \
+    wget https://downloads.apache.org/pig/pig-0.17.0/pig-0.17.0.tar.gz && \
+    tar -xzf pig-0.17.0.tar.gz && \
+    mv pig-0.17.0 /opt/pig && \
+    rm pig-0.17.0.tar.gz && \
+    chmod +x /opt/pig/bin/pig && \
+    # Configura SSH keys para el daemon SSH
+    ssh-keygen -A && \
+    # Permite ssh sin password para localhost (necesario para Hadoop y Pig mapreduce)
+    echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    echo "root:root" | chpasswd
+
+ENV PIG_HOME=/opt/pig
+ENV JAVA_HOME=/usr/local/openjdk-11
+ENV PATH="$JAVA_HOME/bin:$PIG_HOME/bin:$PATH"
+
+WORKDIR /workspace
+
+COPY scripts /pig/scripts
+COPY data /pig/data
+
+# Crea directorios necesarios para Hadoop / Pig
+RUN mkdir -p /pig/input /pig/output /workspace/resultados
+
+# Exponer puertos UI Hadoop/YARN
+EXPOSE 9870 8088 22
+
+# Comando de inicio: SSHD, hadoop, pig en modo mapreduce y mantener vivo el contenedor
+CMD bash -c "\
+    /usr/sbin/sshd && \
+    /start.sh && \
+    hdfs dfs -mkdir -p /pig/input && \
+    pig -x mapreduce /pig/scripts/filtro.pig || echo 'Falló Pig'; \
+    tail -f /dev/null"
