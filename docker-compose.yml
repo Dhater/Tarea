@@ -93,6 +93,41 @@ services:
       start_period: 30s
       timeout: 5s
 
+  
+  filtro-hadoop:
+    image: harisekhon/hadoop:latest
+    container_name: filtro-hadoop
+    ports:
+      - "9870:9870"
+      - "8088:8088"
+    volumes:
+      - ./scripts:/pig/scripts
+      - ./data:/pig/data
+    networks:
+      - red_scraper  # ¡Agregar a la misma red!
+    depends_on:      # Espera estos servicios
+      - postgres
+      - redis
+    healthcheck:     # Verifica que Hadoop esté listo
+      test: ["CMD", "hdfs", "dfsadmin", "-report"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: >
+      sh -c "service ssh start &&
+             /start.sh &&
+             hdfs dfs -mkdir -p /pig/input &&
+             sleep 30 &&  # Espera adicional
+             pig -x mapreduce /pig/scripts/filtro.pig || echo 'Falló Pig';
+             tail -f /dev/null"
+
+
+
+
+
+
+
+
 networks:
   red_scraper:
 
