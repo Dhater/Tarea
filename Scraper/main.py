@@ -25,7 +25,7 @@ lat_max = -33.37380423388275
 lng_min = -70.73255538940431
 lng_max = -70.54201126098634
 
-TARGET_COUNT = 30000
+TARGET_COUNT = 20000
 unique_events = {}
 
 # Ruta del archivo
