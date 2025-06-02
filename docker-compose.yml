@@ -103,6 +103,7 @@ services:
       - ./Filtro/scripts:/pig/scripts
       - ./Filtro/data:/pig/data
       - ./Filtro/data/input:/pig/input
+      - ./Filtro/data/output:/pig/output   # <-- Aquí agregas para persistir la salida localmente
     command: sh /pig/scripts/start.sh
     networks:
       - red_scraper
