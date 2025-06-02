@@ -65,7 +65,9 @@ def generate_traffic():
     hits = 0
 
     # Configuración de distribución
-    distribution_mode = "aleatoria"
+    #distribution_mode = "aleatoria"
+    #distribution_mode = "poisson"
+    distribution_mode = "normal"
     poisson_lambda = float(5000)
     normal_mean = float(5000)
     normal_std_dev = float(1500)
