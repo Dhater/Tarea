@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   scraper:
     build: ./scraper
@@ -105,6 +103,7 @@ services:
       - ./Filtro/scripts:/pig/scripts
       - ./Filtro/data:/pig/data
       - ./Filtro/data/input:/pig/input
+    command: sh /pig/scripts/start.sh
     networks:
       - red_scraper
     depends_on:

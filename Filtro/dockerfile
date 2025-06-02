@@ -1,39 +1,55 @@
 FROM openjdk:11
 
-# Instala paquetes necesarios, ssh, hadoop, wget, etc.
+# Instalación de paquetes necesarios: ssh, wget, net-tools, procps, dos2unix
 RUN apt-get update && \
-    apt-get install -y wget tar ssh net-tools procps && \
-    wget https://downloads.apache.org/pig/pig-0.17.0/pig-0.17.0.tar.gz && \
-    tar -xzf pig-0.17.0.tar.gz && \
-    mv pig-0.17.0 /opt/pig && \
-    rm pig-0.17.0.tar.gz && \
-    chmod +x /opt/pig/bin/pig && \
-    # Configura SSH keys para el daemon SSH
+    apt-get install -y wget tar ssh net-tools procps dos2unix && \
     ssh-keygen -A && \
-    # Permite ssh sin password para localhost (necesario para Hadoop y Pig mapreduce)
+    # Permitir ssh sin password para root (para Hadoop/Pig)
     echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && \
     echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
     echo "root:root" | chpasswd
 
+# Variables de entorno
+ENV HADOOP_VERSION=2.7.3
+ENV PIG_VERSION=0.17.0
+
+ENV HADOOP_HOME=/opt/hadoop
 ENV PIG_HOME=/opt/pig
 ENV JAVA_HOME=/usr/local/openjdk-11
-ENV PATH="$JAVA_HOME/bin:$PIG_HOME/bin:$PATH"
+ENV PATH="$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin:$PIG_HOME/bin:$PATH"
+ENV HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 
-WORKDIR /workspace
+# Instalar Hadoop
+RUN wget https://downloads.apache.org/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz && \
+    tar -xzf hadoop-$HADOOP_VERSION.tar.gz && \
+    mv hadoop-$HADOOP_VERSION $HADOOP_HOME && \
+    rm hadoop-$HADOOP_VERSION.tar.gz
 
+# Instalar Pig
+RUN wget https://downloads.apache.org/pig/pig-$PIG_VERSION/pig-$PIG_VERSION.tar.gz && \
+    tar -xzf pig-$PIG_VERSION.tar.gz && \
+    mv pig-$PIG_VERSION $PIG_HOME && \
+    rm pig-$PIG_VERSION.tar.gz && \
+    chmod +x $PIG_HOME/bin/pig
+
+# Copiar archivos de configuración Hadoop (por defecto vienen en el paquete)
+# Aquí puedes agregar configuraciones custom si quieres, pero el default sirve para modo local
+COPY config/hadoop/* $HADOOP_CONF_DIR/
+
+# Crear directorios de trabajo
+RUN mkdir -p /pig/input /pig/output /workspace/resultados
+
+# Copiar scripts y datos (ajusta según tu estructura)
 COPY scripts /pig/scripts
 COPY data /pig/data
 
-# Crea directorios necesarios para Hadoop / Pig
-RUN mkdir -p /pig/input /pig/output /workspace/resultados
+# Convertir scripts a formato Unix para evitar errores de fin de línea
+RUN dos2unix /pig/scripts/*.sh
 
-# Exponer puertos UI Hadoop/YARN
-EXPOSE 9870 8088 22
+WORKDIR /workspace
 
-# Comando de inicio: SSHD, hadoop, pig en modo mapreduce y mantener vivo el contenedor
-CMD bash -c "\
-    /usr/sbin/sshd && \
-    /start.sh && \
-    hdfs dfs -mkdir -p /pig/input && \
-    pig -x mapreduce /pig/scripts/filtro.pig || echo 'Falló Pig'; \
-    tail -f /dev/null"
+# Exponer puertos de SSH (22), UI de Hadoop (9870), YARN (8088) (opcional)
+EXPOSE 22 9870 8088
+
+# Comando de inicio
+CMD ["bash", "/pig/scripts/start.sh"]
