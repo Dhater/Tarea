@@ -1,140 +1,141 @@
-version: "3.9"
+  version: "3.9"
 
-services:
-  scraper:
-    build: ./scraper
-    container_name: scraper
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=mi_basededatos
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=user
-      - REDIS_HOST=redis
-      - PYTHONUNBUFFERED=1
-    networks:
-      - red_scraper
-    volumes:
-      - ./scraper:/app
-      - /app/venv
-      - csv_data:/csv
+  services:
+    scraper:
+      build: ./scraper
+      container_name: scraper
+      environment:
+        - POSTGRES_HOST=postgres
+        - POSTGRES_DB=mi_basededatos
+        - POSTGRES_USER=user
+        - POSTGRES_PASSWORD=user
+        - REDIS_HOST=redis
+        - PYTHONUNBUFFERED=1
+      networks:
+        - red_scraper
+      volumes:
+        - ./scraper:/app
+        - /app/venv
+        - ./Filtro/data/input:/csv  # Usa la carpeta real como volumen
 
-  postgres:
-    image: postgres:16
-    container_name: postgres
-    environment:
-      - POSTGRES_DB=mi_basededatos
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=user
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - red_scraper
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d mi_basededatos"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    postgres:
+      image: postgres:16
+      container_name: postgres
+      environment:
+        - POSTGRES_DB=mi_basededatos
+        - POSTGRES_USER=user
+        - POSTGRES_PASSWORD=user
+      ports:
+        - "5432:5432"
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+        - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      networks:
+        - red_scraper
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U user -d mi_basededatos"]
+        interval: 5s
+        timeout: 5s
+        retries: 5
 
-  redis:
-    image: redis:7
-    container_name: redis
-    volumes:
-      - redis_data:/data
-    networks:
-      - red_scraper
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
+    redis:
+      image: redis:7
+      container_name: redis
+      volumes:
+        - redis_data:/data
+      networks:
+        - red_scraper
+      healthcheck:
+        test: ["CMD", "redis-cli", "ping"]
+        interval: 5s
 
-  cache_service:
-    build: ./cache_service
-    environment:
-      - REDIS_HOST=redis
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=mi_basededatos
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=user
-      - PYTHONUNBUFFERED=1
-    container_name: cache_service
-    ports:
-      - "5000:5000"
-    networks:
-      - red_scraper
-    volumes:
-      - ./cache_service:/app
-      - /app/venv
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+    cache_service:
+      build: ./cache_service
+      environment:
+        - REDIS_HOST=redis
+        - POSTGRES_HOST=postgres
+        - POSTGRES_DB=mi_basededatos
+        - POSTGRES_USER=user
+        - POSTGRES_PASSWORD=user
+        - PYTHONUNBUFFERED=1
+      container_name: cache_service
+      ports:
+        - "5000:5000"
+      networks:
+        - red_scraper
+      volumes:
+        - ./cache_service:/app
+        - /app/venv
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
 
-  trafico:
-    build: ./trafico
-    container_name: trafico
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=mi_basededatos
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=user
-      - CACHE_SERVICE_URL=http://cache_service:5000  # Aquí usas el nombre del servicio
-      - PYTHONUNBUFFERED=1
-    networks:
-      - red_scraper
-    volumes:
-      - ./trafico:/app
-      - /app/venv
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 5s
+    trafico:
+      build: ./trafico
+      container_name: trafico
+      environment:
+        - POSTGRES_HOST=postgres
+        - POSTGRES_DB=mi_basededatos
+        - POSTGRES_USER=user
+        - POSTGRES_PASSWORD=user
+        - CACHE_SERVICE_URL=http://cache_service:5000  # Aquí usas el nombre del servicio
+        - PYTHONUNBUFFERED=1
+      networks:
+        - red_scraper
+      volumes:
+        - ./trafico:/app
+        - /app/venv
+      healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+        interval: 10s
+        retries: 5
+        start_period: 30s
+        timeout: 5s
 
-  
-  filtro-hadoop:
-    image: harisekhon/hadoop:latest
-    container_name: filtro-hadoop
-    ports:
-      - "9870:9870"
-      - "8088:8088"
-    volumes:
-      - ./scripts:/pig/scripts
-      - ./data:/pig/data
-      - csv_data:/pig/input
-    networks:
-      - red_scraper  # ¡Agregar a la misma red!
-    depends_on:      # Espera estos servicios
-      - postgres
-      - redis
-    healthcheck:     # Verifica que Hadoop esté listo
-      test: ["CMD", "hdfs", "dfsadmin", "-report"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    command: >
-      sh -c "service ssh start &&
-             /start.sh &&
-             hdfs dfs -mkdir -p /pig/input &&
-             sleep 30 &&  # Espera adicional
-             pig -x mapreduce /pig/scripts/filtro.pig || echo 'Falló Pig';
-             tail -f /dev/null"
+    
+    filtro-hadoop:
+      image: harisekhon/hadoop:latest
+      container_name: filtro-hadoop
+      ports:
+        - "9870:9870"
+        - "8088:8088"
+      volumes:
+        - ./scripts:/pig/scripts
+        - ./Filtro/data:/pig/data
+        - ./Filtro/data/input:/pig/input  # Mismo path sincronizado
 
-
-
+      networks: 
+        - red_scraper  # ¡Agregar a la misma red!
+      depends_on:      # Espera estos servicios
+        - postgres
+        - redis
+      healthcheck:     # Verifica que Hadoop esté listo
+        test: ["CMD", "hdfs", "dfsadmin", "-report"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+      command: >
+        sh -c "service ssh start &&
+              /start.sh &&
+              hdfs dfs -mkdir -p /pig/input &&
+              sleep 30 &&  # Espera adicional
+              pig -x mapreduce /pig/scripts/filtro.pig || echo 'Falló Pig';
+              tail -f /dev/null"
 
 
 
 
 
-networks:
-  red_scraper:
 
-volumes:
-  redis_data:
-  postgres_data:
-  csv_data:
+
+
+  networks:
+    red_scraper:
+
+  volumes:
+    redis_data:
+    postgres_data:
+  # csv_data:
 
