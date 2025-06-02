@@ -104,7 +104,7 @@ services:
       - ./Filtro/data:/pig/data
       - ./Filtro/data/input:/pig/input
       - ./Filtro/data/output:/pig/output   # <-- Aquí agregas para persistir la salida localmente
-    command: sh -c "sleep 20 && sh /pig/scripts/start.sh"
+    command: sh -c "sleep 10 && sh /pig/scripts/start.sh"
     networks:
       - red_scraper
     depends_on:
