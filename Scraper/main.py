@@ -4,6 +4,9 @@ import time
 import os
 import csv
 import psycopg2
+from datetime import datetime
+
+#Scraper
 def fetch_waze_events(lat_min, lat_max, lng_min, lng_max):
     url = (
         f"https://www.waze.com/live-map/api/georss?"
@@ -40,6 +43,7 @@ if os.path.exists(ruta_archivo):
         except json.JSONDecodeError:
             print("⚠️ El archivo existente está corrupto. Se creará uno nuevo.")
 
+#Inicio Scraper
 print("🚀 Iniciando scraping...")
 
 while len(unique_events) < TARGET_COUNT:
@@ -69,6 +73,8 @@ with open(ruta_archivo, 'w', encoding='utf-8') as f:
     json.dump(list(unique_events.values()), f, ensure_ascii=False, indent=2)
 print(f"✅ ¡Scraping completado! Archivo final: {ruta_archivo}")
 
+
+#Exportar CSV
 def exportar_eventos_a_csv():
     conn = psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB"),
@@ -78,20 +84,35 @@ def exportar_eventos_a_csv():
         port=5432
     )
     cur = conn.cursor()
-    cur.execute("SELECT uuid, country, city, type, subtype, street, speed, confidence, x, y FROM eventos")
+    
+    # Incluye pubMillis en la consulta
+    cur.execute("""
+        SELECT uuid, country, city, type, subtype, street, speed,
+               confidence, x, y, pubMillis
+        FROM eventos
+    """)
 
-    ruta_salida = "/csv/eventos.csv"  # Este debe montarse como volumen compartido
+    ruta_salida = "/csv/eventos.csv"
     os.makedirs(os.path.dirname(ruta_salida), exist_ok=True)
 
     with open(ruta_salida, "w", newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        writer.writerow([desc[0] for desc in cur.description])  # headers
+        
+        # Agrega encabezado con pub_date
+        headers = [desc[0] for desc in cur.description]
+        headers.append("pub_date")
+        writer.writerow(headers)
+
         for row in cur.fetchall():
-            writer.writerow(row)
+            *resto, pubMillis = row
+            pub_date = datetime.fromtimestamp(pubMillis / 1000).strftime("%Y-%m-%d %H:%M:%S")
+            writer.writerow(resto + [pubMillis, pub_date])
 
     print(f"✅ Exportado a {ruta_salida}")
     cur.close()
     conn.close()
+
+#Insertar
 def insertar_eventos_en_postgres(eventos):
     conn = psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB"),
