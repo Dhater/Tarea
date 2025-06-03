@@ -1,14 +1,10 @@
 #!/bin/bash
 /usr/sbin/sshd
-
 # Borrar la carpeta /pig/output antes de ejecutar
 rm -rf /pig/output
-
 mkdir -p /pig/input
-
-pig -x local /pig/scripts/filtro.pig || echo 'Fall√≥ Pig filtro'
-pig -x local /pig/scripts/ciudad.pig || echo 'Fall√≥ Pig ciudad an√°lisis'
-pig -x local /pig/scripts/tipo.pig || echo 'Fall√≥ Pig tipo an√°lisis'
-pig -x local /pig/scripts/fecha.pig || echo 'Fall√≥ Pig fecha an√°lisis'
-
+pig -x mapreduce /pig/scripts/filtro.pig || echo 'FallÛ Pig filtro'
+pig -x mapreduce /pig/scripts/ciudad.pig || echo 'FallÛ Pig ciudad an·lisis'
+pig -x mapreduce /pig/scripts/tipo.pig || echo 'FallÛ Pig tipo an·lisis'
+pig -x mapreduce /pig/scripts/fecha.pig || echo 'FallÛ Pig fecha an·lisis'
 tail -f /dev/null

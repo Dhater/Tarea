@@ -1,12 +1,16 @@
--- Dividir pubMillis entre mil y luego entre 86400 para obtener el número de días desde 1970
-datos_con_fecha = FOREACH datos GENERATE
-                    uuid, city, type, pubMillis,
-                    (long)(pubMillis / 1000 / 86400) AS dia;
+-- Carga datos con pub_date como chararray (YYYY-MM-DD)
+datos = LOAD '/pig/output/filtrados' USING PigStorage(',')
+        AS (uuid:chararray, country:chararray, city:chararray,
+            type:chararray, subtype:chararray, street:chararray,
+            speed:int, confidence:int, x:float, y:float, pubMillis:long, pub_date:chararray);
 
-grp_fecha = GROUP datos_con_fecha BY dia;
+-- Agrupa por pub_date (fecha sin hora)
+agrupado = GROUP datos BY pub_date;
 
-conteo_fecha = FOREACH grp_fecha GENERATE
-                 group AS fecha_unix,
-                 COUNT(datos_con_fecha) AS total_eventos;
+-- Cuenta eventos por fecha
+conteo = FOREACH agrupado GENERATE
+            group AS fecha_legible,
+            COUNT(datos) AS total_eventos;
 
-STORE conteo_fecha INTO '/pig/output/por_fecha' USING PigStorage(',');
+-- Guarda resultado con fecha y conteo
+STORE conteo INTO '/pig/output/por_fecha' USING PigStorage(',');

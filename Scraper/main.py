@@ -74,7 +74,6 @@ with open(ruta_archivo, 'w', encoding='utf-8') as f:
 print(f"✅ ¡Scraping completado! Archivo final: {ruta_archivo}")
 
 
-#Exportar CSV
 def exportar_eventos_a_csv():
     conn = psycopg2.connect(
         dbname=os.getenv("POSTGRES_DB"),
@@ -105,12 +104,14 @@ def exportar_eventos_a_csv():
 
         for row in cur.fetchall():
             *resto, pubMillis = row
-            pub_date = datetime.fromtimestamp(pubMillis / 1000).strftime("%Y-%m-%d %H:%M:%S")
+            # Solo fecha YYYY-MM-DD, sin hora
+            pub_date = datetime.fromtimestamp(pubMillis / 1000).strftime("%Y-%m-%d")
             writer.writerow(resto + [pubMillis, pub_date])
 
     print(f"✅ Exportado a {ruta_salida}")
     cur.close()
     conn.close()
+
 
 #Insertar
 def insertar_eventos_en_postgres(eventos):
