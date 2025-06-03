@@ -1,4 +1,9 @@
 services:
+  clean:
+    image: busybox
+    volumes:
+      - ./Filtro/data:/data
+    command: sh -c "rm -rf /data/output/analisis /data/output/filtrados /data/output/por_ciudad /data/output/por_tipo /data/output/por_fecha /data/input/eventos.csv"
   scraper:
     build: ./scraper
     container_name: scraper
