@@ -5,7 +5,6 @@ import os
 import csv
 import psycopg2
 from datetime import datetime
-import matplotlib as plt
 
 #Scraper
 def fetch_waze_events(lat_min, lat_max, lng_min, lng_max):
