@@ -17,9 +17,10 @@ Pasos para usarlo:
 
 1. Clonar el repositorio:
    git clone https://github.com/Dhater/Tarea.git
+   
    cd repositorio
 
-2. Levantar todo con Docker(se requiere tener Docker instalado y abierto):
+3. Levantar todo con Docker(se requiere tener Docker instalado y abierto):
 
    docker-compose up --build
 
