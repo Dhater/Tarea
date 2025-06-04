@@ -33,7 +33,9 @@ Este proyecto implementa un **pipeline de procesamiento de datos** totalmente au
 
    ```bash
    docker-compose up --build
-   docker-compose up --d
+   ```
+   ```bash
+   docker-compose up -d
    ```
 
 3. **Pipeline en acción:**
