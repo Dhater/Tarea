@@ -5,6 +5,7 @@ import os
 import csv
 import psycopg2
 from datetime import datetime
+import matplotlib as plt
 
 #Scraper
 def fetch_waze_events(lat_min, lat_max, lng_min, lng_max):
@@ -112,7 +113,90 @@ def exportar_eventos_a_csv():
     cur.close()
     conn.close()
 
+#Graficador
+def analizar_y_graficar_archivo(archivo, titulo, nombre_salida, tipo_grafico="barra"):
+    claves = []
+    valores = []
 
+    with open(archivo, 'r', encoding='utf-8') as f:
+        for linea in f:
+            partes = linea.strip().split('\t')
+            if len(partes) == 2:
+                clave, valor = partes
+                claves.append(clave)
+                valores.append(int(valor))
+
+    plt.figure(figsize=(10, 6))
+
+    if tipo_grafico == "barra":
+        # Ordenar fechas si es posible
+        try:
+            # Intentamos convertir claves a fechas para ordenar
+            fechas = [datetime.strptime(c, "%Y-%m-%d") for c in claves]
+            pares = sorted(zip(fechas, valores), key=lambda x: x[0])
+            fechas_ordenadas = [f.strftime("%Y-%m-%d") for f, v in pares]
+            valores_ordenados = [v for f, v in pares]
+            claves, valores = fechas_ordenadas, valores_ordenados
+        except Exception as e:
+            print(f"⚠️ No se pudieron ordenar fechas: {e}")
+
+        plt.bar(claves, valores, color='skyblue')
+        plt.xlabel("Fecha")
+        plt.ylabel("Cantidad")
+        plt.xticks(rotation=45)
+
+    elif tipo_grafico == "torta":
+        plt.pie(valores, labels=claves, autopct='%1.1f%%', startangle=140)
+        plt.axis('equal')  # Para que el gráfico sea circular
+
+    plt.title(titulo)
+    plt.tight_layout()
+
+    ruta_img = f"/output/grafico_{nombre_salida}.png"
+    plt.savefig(ruta_img)
+    print(f"🖼️ Gráfico guardado en: {ruta_img}")
+    plt.close()
+
+#Revisar archivos
+def revisar_y_analizar_output_pig():
+    ruta_output = "/output"
+    archivos_esperados = {
+        "filtrados/part-r-00000": ("Eventos filtrados", "filtrados", "torta"),
+        "por_ciudad/part-r-00000": ("Eventos por ciudad", "ciudad", "torta"),
+        "por_tipo/part-r-00000": ("Eventos por tipo", "tipo", "torta"),
+        "por_fecha/part-r-00000": ("Eventos por fecha", "fecha", "barra")
+    }
+    encontrados = 0
+
+    for archivo_rel, (titulo, nombre_img, tipo_graf) in archivos_esperados.items():
+        ruta_archivo = os.path.join(ruta_output, archivo_rel)
+        if os.path.exists(ruta_archivo):
+            print(f"📂 Archivo encontrado: {ruta_archivo}")
+            encontrados += 1
+            analizar_y_graficar_archivo(ruta_archivo, titulo, nombre_img, tipo_graf)
+
+    if encontrados == 0:
+        print("❗ No se encontraron archivos de salida de Pig.")
+#Conteo eventos
+def obtener_total_maximo_eventos():
+    try:
+        conn = psycopg2.connect(
+            dbname=os.getenv("POSTGRES_DB"),
+            user=os.getenv("POSTGRES_USER"),
+            password=os.getenv("POSTGRES_PASSWORD"),
+            host=os.getenv("POSTGRES_HOST"),
+            port=5432
+        )
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM eventos;")
+        total = cur.fetchone()[0]
+        cur.close()
+        conn.close()
+        print(f"📊 Total máximo de eventos en la base: {total}")
+        return total
+    except Exception as e:
+        print(f"❌ Error al obtener total de eventos: {e}")
+        return None
 #Insertar
 def insertar_eventos_en_postgres(eventos):
     conn = psycopg2.connect(
@@ -212,6 +296,7 @@ try:
 except Exception as e:
     print(f"❌ Error al insertar en base de datos: {e}")
 exportar_eventos_a_csv()
+revisar_y_analizar_output_pig()
 # 🔄 Espera infinita mostrando la hora
 print("🕒 Esperando indefinidamente. Mostrando hora actual cada 30 segundos...")
 try:
