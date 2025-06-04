@@ -1,56 +1,34 @@
-# Sistema Distribuido de Scraping y Caché
+Sistema de Extracción, Filtrado y Análisis de Datos de Tráfico (Waze)
 
-Este proyecto utiliza contenedores Docker para desplegar un sistema distribuido que incluye:
+Este proyecto se realiza un flujo de procesamiento de datos basado en contenedores Docker, en donde todo el procesamiento, desde la recolección de datos hasta el análisis final ocurre automáticamente al levantar los servicios.
 
-- Un scraper que obtiene eventos según coordenadas geográficas (latitud y longitud).
-- Un servicio de caché (`cache_service`) que intermedia entre el trafico generado , Redis y PostgreSQL.
-- Un servidor de base de datos PostgreSQL.
-- Un servicio de caché Redis.
-- Un contenedor adicional llamado `trafico` (actualmente no utilizado por problemas de conexión).
+1.- El scrapper web obtiene datos de tráfico desde la API de Waze.
+2.- Los datos son guardados y compartidos mediante un volumen con el filtro de datos (Apache Hadoop y con Pig).
+3.- El filtro limpia y transforma los datos, generando un CSV limpio en carpeta output.
+4.- Finalmente, el analizador de datos toma ese CSV y produce resultados procesados y organizados.
 
-## Estructura General
+Todo esto sucede al levantar los contenedores de docker.
 
-El archivo `docker-compose.yml` crea y configura los siguientes servicios:
+Pasos para usarlo:
 
-### 1. **Scraper**
-- Construido desde la carpeta `./scraper` con su respectivo `Dockerfile`.
-- Realiza scraping de eventos basándose en latitudes y longitudes predefinidas.
-- Envía los datos a la base de datos PostgreSQL y puede interactuar con Redis.
-- Utiliza variables de entorno para conectarse a los servicios de base de datos y caché.
+1. Clonar el repositorio:
+   git clone https://github.com/Dhater/Tarea.git
+   cd repositorio
 
-### 2. **PostgreSQL**
-- Imagen oficial `postgres:16`.
-- Servidor de base de datos estándar.
-- Usa un volumen persistente (`postgres_data`) y un archivo SQL de inicialización (`init.sql`).
-- Expone el puerto `5432` para conexiones externas si se desea.
-- Incluye un `healthcheck` para verificar su disponibilidad.
+2. Levantar todo con Docker(se requiere tener Docker instalado y abierto):
 
-### 3. **Redis**
-- Imagen oficial `redis:7`.
-- Actúa como un sistema de caché estándar.
-- Usa un volumen persistente (`redis_data`) y un `healthcheck` simple con `redis-cli ping`.
+   docker-compose up --build
 
-### 4. **Cache Service**
-- Construido desde la carpeta `./cache_service`.
-- Expone una API Flask en el puerto `5000`.
-- Recibe solicitudes, consulta Redis o PostgreSQL y responde con los datos correspondientes.
-- Está diseñado para crear tráfico regular hacia Redis y PostgreSQL.
-- Incluye un endpoint `/health` para verificar su estado.
+3.- Todo el pipeline se ejecutará automáticamente:
 
-### 5. **Trafico (No activo)**
-- Construido desde la carpeta `./trafico`.
-- Su propósito es generar tráfico automático hacia el servicio `cache_service`.
-- Actualmente **no se utiliza** debido a problemas de conexión.
+- El scraper comenzará a obtener eventos de Waze.
+- Los eventos se escribirán en shared/input/.
+- Hadoop/Pig tomará esos datos, los limpiará y los guardará como CSV en shared/output/.
+- El analizador leerá los datos filtrados y mostrará los resultados.
 
-## Red y Volúmenes
 
-- Todos los servicios están conectados a una red personalizada `red_scraper`.
-- Los datos persistentes de PostgreSQL y Redis se almacenan en los volúmenes `postgres_data` y `redis_data`, respectivamente.
+Resultado esperado
 
-## Cómo usar
+Después de levantar los servicios, encontrarás el archivo CSV limpio en:
 
-1. Asegúrate de tener Docker y Docker Compose instalados.
-2. Ejecuta el entorno con:
-
-```bash
-docker-compose up --build
+shared/output/fatos_filtrados.csv
