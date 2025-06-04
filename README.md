@@ -3,9 +3,13 @@ Sistema de Extracción, Filtrado y Análisis de Datos de Tráfico (Waze)
 Este proyecto se realiza un flujo de procesamiento de datos basado en contenedores Docker, en donde todo el procesamiento, desde la recolección de datos hasta el análisis final ocurre automáticamente al levantar los servicios.
 
 1.- El scrapper web obtiene datos de tráfico desde la API de Waze.
+
 2.- Los datos son guardados y compartidos mediante un volumen con el filtro de datos (Apache Hadoop y con Pig).
+
 3.- El filtro limpia y transforma los datos, generando un CSV limpio en carpeta output.
+
 4.- Finalmente, el analizador de datos toma ese CSV y produce resultados procesados y organizados.
+
 
 Todo esto sucede al levantar los contenedores de docker.
 
