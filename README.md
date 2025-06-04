@@ -40,7 +40,7 @@ Este proyecto implementa un **pipeline de procesamiento de datos** totalmente au
 
    * El scraper comenzará a recolectar eventos de Waze.
    * Los eventos se guardarán en `shared/input/`.
-   * Hadoop/Pig los filtrará y transformará, guardando el resultado limpio como CSV en `shared/output/`.
+   * Hadoop/Pig los filtrará y transformará, guardando el resultado limpio como Pig Storage en `shared/data/output/filtrados`.
    * El analizador procesará los datos limpios y mostrará estadísticas organizadas.
 
 ---
@@ -63,7 +63,3 @@ Después de ejecutar el pipeline, encontrarás los resultados en:
 ## 📝 Notas finales
 
 Este sistema permite automatizar el flujo completo de análisis de datos de tráfico urbano desde su extracción hasta su análisis final, facilitando la obtención de insights relevantes sin intervención manual.
-
----
-
-¿Quieres agregar un logo, badges de Docker o mejorar la visual con emojis? Puedo ayudarte con eso también.
