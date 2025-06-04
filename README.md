@@ -49,7 +49,7 @@ Este proyecto implementa un **pipeline de procesamiento de datos** totalmente au
 
 Después de ejecutar el pipeline, encontrarás los resultados en:
 
-* **Archivo limpio filtrado (CSV):**
+* **Archivo limpio filtrado:**
   `Filtro/data/output/filtrados/part-m-00000`
 
 * **Datos analizados:**
