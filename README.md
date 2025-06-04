@@ -11,10 +11,10 @@ Este proyecto implementa un **pipeline de procesamiento de datos** totalmente au
    Los datos obtenidos son guardados y compartidos con el siguiente módulo mediante un volumen Docker.
 
 3. **Filtro de Datos (Apache Hadoop + Pig)**
-   Limpia y transforma los datos. El resultado es un archivo en formato **Pig Storage** guardado en `data/output/`.
+   Limpia y transforma los datos. El resultado es un archivo en formato **Pig Storage** guardado en `data/output/filtrados/`.
 
 4. **Analizador de Datos**
-   Procesa los datos limpios y genera resultados estructurados por **tipo**, **ciudad** y **fecha**.
+   Procesa los datos limpios y genera resultados estructurados por **tipo**, **ciudad** y **fecha** en `data/output/por_{Categoria}/`.
 
 ---
 
