@@ -1,43 +1,68 @@
-Sistema de Extracción, Filtrado y Análisis de Datos de Tráfico (Waze)
+# 🚦 Sistema de Extracción, Filtrado y Análisis de Datos de Tráfico (Waze)
 
-Este proyecto se realiza un flujo de procesamiento de datos basado en contenedores Docker, en donde todo el procesamiento, desde la recolección de datos hasta el análisis final ocurre automáticamente al levantar los servicios.
+Este proyecto implementa un **pipeline de procesamiento de datos** totalmente automatizado mediante **contenedores Docker**. Desde la recolección hasta el análisis final, todo ocurre al levantar los servicios definidos.
 
-1.- El scrapper web obtiene datos de tráfico desde la API de Waze.
+## 🧩 Componentes del sistema
 
-2.- Los datos son guardados y compartidos mediante un volumen con el filtro de datos (Apache Hadoop y con Pig).
+1. **Scraper Web**
+   Obtiene eventos de tráfico en tiempo real desde la API de **Waze**.
 
-3.- El filtro limpia y transforma los datos, generando un archivo en pig storage limpio en carpeta data/output.
+2. **Volumen Compartido**
+   Los datos obtenidos son guardados y compartidos con el siguiente módulo mediante un volumen Docker.
 
-4.- Finalmente, el analizador de datos toma ese Pig Storage, produce resultados procesados y organizados.
+3. **Filtro de Datos (Apache Hadoop + Pig)**
+   Limpia y transforma los datos. El resultado es un archivo en formato **Pig Storage** guardado en `data/output/`.
 
+4. **Analizador de Datos**
+   Procesa los datos limpios y genera resultados estructurados por **tipo**, **ciudad** y **fecha**.
 
-Todo esto sucede al levantar los contenedores de docker.
+---
 
-Pasos para usarlo:
+## ⚙️ ¿Cómo usarlo?
 
-1. Clonar el repositorio:
+1. **Clonar el repositorio:**
+
+   ```bash
    git clone https://github.com/Dhater/Tarea.git
-   
-   cd repositorio
+   cd Tarea
+   ```
 
-3. Levantar todo con Docker(se requiere tener Docker instalado y abierto, ademas de un sistema con wsl si se usa windows):
+2. **Levantar los servicios con Docker:**
 
+   > ⚠️ Requisitos: Tener **Docker** instalado y ejecutándose. En Windows, se requiere también **WSL**.
+
+   ```bash
    docker-compose up --build
+   ```
 
-3.- Todo el pipeline se ejecutará automáticamente:
+3. **Pipeline en acción:**
 
-- El scraper comenzará a obtener eventos de Waze.
-- Los eventos rescatados de la base se escribirán en shared/input/.
-- Hadoop/Pig tomará esos datos, los limpiará y los guardará como CSV en shared/output/.
-- El analizador leerá los datos filtrados y mostrará los resultados.
+   * El scraper comenzará a recolectar eventos de Waze.
+   * Los eventos se guardarán en `shared/input/`.
+   * Hadoop/Pig los filtrará y transformará, guardando el resultado limpio como CSV en `shared/output/`.
+   * El analizador procesará los datos limpios y mostrará estadísticas organizadas.
 
+---
 
-Resultado esperado
+## 📁 Archivos de salida esperados
 
-Después de levantar los servicios, encontrarás el archivo CSV limpio en:
+Después de ejecutar el pipeline, encontrarás los resultados en:
 
-Filtro/data/output/filtrados/part-m-00000
-y los datos analisados en:
-Filtro/data/output/por_fecha/part-r-00000
-Filtro/data/output/por_tipo/part-r-00000
-Filtro/data/output/por_ciudad/part-r-00000
+* **Archivo limpio filtrado (CSV):**
+  `Filtro/data/output/filtrados/part-m-00000`
+
+* **Datos analizados:**
+
+  * Por fecha: `Filtro/data/output/por_fecha/part-r-00000`
+  * Por tipo: `Filtro/data/output/por_tipo/part-r-00000`
+  * Por ciudad: `Filtro/data/output/por_ciudad/part-r-00000`
+
+---
+
+## 📝 Notas finales
+
+Este sistema permite automatizar el flujo completo de análisis de datos de tráfico urbano desde su extracción hasta su análisis final, facilitando la obtención de insights relevantes sin intervención manual.
+
+---
+
+¿Quieres agregar un logo, badges de Docker o mejorar la visual con emojis? Puedo ayudarte con eso también.
