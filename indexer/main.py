@@ -1,53 +1,73 @@
 import os
 import glob
+import time
 from elasticsearch import Elasticsearch, helpers
 
 ES_HOST = "http://elasticsearch:9200"
-INDEX_NAME = "incidentes_trafico"
-DATA_DIR = "/data/output/filtrados"  # dentro del contenedor, porque el volumen se monta ahí
-
-FIELDS = [
-    "uuid", "country", "city", "type", "subtype", "street",
-    "speed", "confidence", "x", "y", "pubmillis", "pub_date"
-]
-
 es = Elasticsearch(ES_HOST)
 
-def parse_line(line):
-    values = line.strip().split("\t")
-    if len(values) != len(FIELDS):
-        return None
-    doc = dict(zip(FIELDS, values))
-    try:
-        doc["speed"] = float(doc["speed"])
-        doc["confidence"] = float(doc["confidence"])
-        doc["x"] = float(doc["x"])
-        doc["y"] = float(doc["y"])
-        doc["pubmillis"] = int(doc["pubmillis"])
-    except:
-        pass
-    return doc
+index_configs = {
+    "incidentes_trafico": {
+        "path": "/data/output/filtrados",
+        "fields": [
+            "uuid", "country", "city", "type", "subtype", "street",
+            "speed", "confidence", "x", "y", "pubmillis", "pub_date"
+        ]
+    },
+    "incidentes_por_fecha": {
+        "path": "/data/output/por_fecha",
+        "fields": ["fecha_legible", "total_eventos"]
+    },
+    "incidentes_por_ciudad": {
+        "path": "/data/output/por_ciudad",
+        "fields": ["ciudad", "total_eventos"]
+    },
+    "incidentes_por_tipo": {
+        "path": "/data/output/por_tipo",
+        "fields": ["tipo", "total_eventos"]
+    }
+}
 
-def load_files_to_es():
+def wait_for_files(paths):
+    print("Esperando archivos part-m-* o part-r-* para indexar...")
+    while not any(glob.glob(os.path.join(path, "part-m-*")) or glob.glob(os.path.join(path, "part-r-*")) for path in paths):
+        print("Archivos no encontrados. Esperando 2 segundos...")
+        time.sleep(2)
+    print("¡Archivos encontrados! Iniciando indexación...")
+
+def parse_line(line, fields):
+    values = line.strip().split(",")
+    if len(values) != len(fields):
+        return None
+    return dict(zip(fields, values))
+
+def index_directory(index_name, dir_path, fields):
     actions = []
-    files = glob.glob(os.path.join(DATA_DIR, "*"))
+    total_indexed = 0
+    files = glob.glob(os.path.join(dir_path, "part-m-*")) + glob.glob(os.path.join(dir_path, "part-r-*"))
+
     for file in files:
+        print(f"Indexando archivo: {file}")
         with open(file, "r", encoding="utf-8") as f:
             for line in f:
-                doc = parse_line(line)
+                doc = parse_line(line, fields)
                 if doc:
                     actions.append({
-                        "_index": INDEX_NAME,
+                        "_index": index_name,
                         "_source": doc
                     })
+                    total_indexed += 1
                     if len(actions) >= 500:
                         helpers.bulk(es, actions)
                         actions = []
     if actions:
         helpers.bulk(es, actions)
+    print(f"Indexación para índice '{index_name}' finalizada: {total_indexed} documentos indexados.")
 
 if __name__ == "__main__":
-    if not es.indices.exists(index=INDEX_NAME):
-        es.indices.create(index=INDEX_NAME)
-    load_files_to_es()
-    print("Indexación finalizada")
+    wait_for_files([cfg["path"] for cfg in index_configs.values()])
+
+    for index_name, cfg in index_configs.items():
+        if not es.indices.exists(index=index_name):
+            es.indices.create(index=index_name)
+        index_directory(index_name, cfg["path"], cfg["fields"])

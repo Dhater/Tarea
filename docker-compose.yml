@@ -162,9 +162,11 @@ services:
     depends_on:
       - elasticsearch
     volumes:
-      - ./Filtro/data:/data   # monta el volumen con los datos Pig
+      - ./Filtro/data:/data        # volumen con datos para indexar
+      - ./indexer:/app             # monta el código local dentro del contenedor (sobrepone el COPY)
     networks:
       - red_scraper
+
 
  
 networks:
