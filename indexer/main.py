@@ -13,7 +13,7 @@ index_configs = {
             "uuid", "country", "city", "type", "subtype", "street",
             "speed", "confidence", "x", "y", "pubmillis", "pub_date"
         ],
-        "id_field": "uuid"  # campo para usar como _id en ES y evitar duplicados
+        "id_field": "uuid"
     },
     "incidentes_por_fecha": {
         "path": "/data/output/por_fecha",
@@ -32,6 +32,13 @@ index_configs = {
     }
 }
 
+def countdown(seconds):
+    print(f"Iniciando en {seconds} segundos...")
+    for remaining in range(seconds, 0, -1):
+        print(f"\r{remaining} segundos restantes...", end="", flush=True)
+        time.sleep(1)
+    print("\r¡Iniciando ahora!            ")
+
 def wait_for_files(paths):
     print("Esperando archivos part-m-* o part-r-* para indexar...")
     while not any(
@@ -43,39 +50,41 @@ def wait_for_files(paths):
     print("¡Archivos encontrados! Iniciando indexación...")
 
 def parse_line(line, fields):
-    values = line.strip().split(",")
+    values = line.strip().split(",")  # Ajusta separador según corresponda
     if len(values) != len(fields):
+        print(f"Advertencia: línea ignorada por longitud inválida ({len(values)} campos, esperado {len(fields)}): {line.strip()}")
         return None
     doc = dict(zip(fields, values))
-    # Convertir valores numéricos si corresponde
     for key in ["speed", "confidence", "x", "y", "pubmillis", "total_eventos"]:
         if key in doc:
             try:
                 if key in ["x", "y"]:
                     doc[key] = float(doc[key])
                 elif key in ["speed", "confidence", "total_eventos"]:
-                    doc[key] = int(float(doc[key]))  # algunos pueden venir como "10.0"
+                    doc[key] = int(float(doc[key]))
                 elif key == "pubmillis":
                     doc[key] = int(doc[key])
-            except:
-                pass
+            except Exception as e:
+                print(f"Advertencia: no se pudo convertir campo {key} con valor '{doc[key]}': {e}")
     return doc
 
-def clear_index_documents(index_name):
+def clear_index(index_name):
     if es.indices.exists(index=index_name):
-        print(f"Borrando documentos en índice: {index_name}")
-        # delete_by_query con query match_all borra todos los documentos, no el índice
-        es.delete_by_query(index=index_name, body={"query": {"match_all": {}}}, wait_for_completion=True)
-    else:
-        print(f"Índice {index_name} no existe, se creará.")
-        es.indices.create(index=index_name)
+        print(f"Borrando índice completo: {index_name}")
+        es.indices.delete(index=index_name)
+    print(f"Creando índice: {index_name}")
+    es.indices.create(index=index_name)
 
 def index_directory(index_name, dir_path, fields, id_field):
-    clear_index_documents(index_name)
+    clear_index(index_name)
 
     actions = []
     total_indexed = 0
     files = glob.glob(os.path.join(dir_path, "part-m-*")) + glob.glob(os.path.join(dir_path, "part-r-*"))
+
+    if not files:
+        print(f"No se encontraron archivos para indexar en {dir_path}")
+        return 0
 
     for file in files:
         print(f"Indexando archivo: {file}")
@@ -83,7 +92,6 @@ def index_directory(index_name, dir_path, fields, id_field):
             for line in f:
                 doc = parse_line(line, fields)
                 if doc:
-                    # Usa id_field como _id para evitar duplicados
                     doc_id = doc.get(id_field)
                     action = {
                         "_index": index_name,
@@ -94,14 +102,36 @@ def index_directory(index_name, dir_path, fields, id_field):
                     actions.append(action)
                     total_indexed += 1
                     if len(actions) >= 500:
-                        helpers.bulk(es, actions)
+                        helpers.bulk(es, actions, refresh=True)
                         actions = []
     if actions:
-        helpers.bulk(es, actions)
+        helpers.bulk(es, actions, refresh=True)
+
     print(f"✅ Indexación para índice '{index_name}' finalizada: {total_indexed} documentos indexados.\n")
+    return total_indexed
+
+def wait_for_index_data(index_name):
+    print(f"Verificando que el índice '{index_name}' tenga documentos...")
+    while True:
+        try:
+            count = es.count(index=index_name)['count']
+            if count > 0:
+                print(f"El índice '{index_name}' tiene {count} documentos. Continuando...")
+                break
+            else:
+                print(f"El índice '{index_name}' tiene 0 documentos. Esperando 5 segundos...")
+                time.sleep(5)
+        except Exception as e:
+            print(f"Error al consultar índice '{index_name}': {e}. Reintentando en 5 segundos...")
+            time.sleep(5)
 
 if __name__ == "__main__":
+    countdown(30)  # Cuenta regresiva antes de empezar
+
     wait_for_files([cfg["path"] for cfg in index_configs.values()])
 
     for index_name, cfg in index_configs.items():
-        index_directory(index_name, cfg["path"], cfg["fields"], cfg["id_field"])
+        total = index_directory(index_name, cfg["path"], cfg["fields"], cfg["id_field"])
+        if total == 0:
+            print(f"¡Atención! No se indexó ningún documento para el índice '{index_name}'.")
+        wait_for_index_data(index_name)
