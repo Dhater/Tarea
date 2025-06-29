@@ -135,3 +135,7 @@ if __name__ == "__main__":
         if total == 0:
             print(f"¡Atención! No se indexó ningún documento para el índice '{index_name}'.")
         wait_for_index_data(index_name)
+
+        print("Esperando 30 segundos antes de procesar el siguiente índice...")
+        time.sleep(30)
+
