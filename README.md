@@ -23,7 +23,7 @@ Este proyecto implementa un **pipeline de procesamiento de datos** totalmente au
    Presenta los datos indexados de manera visualmente atractiva, utilizando gráficos y métricas claras.
    
 8. **Generador de trafico ElasticSearch**
-   Se genera trafico de consultas para hacer uso de un cache de Redis. 
+   Se genera trafico de consultas Elastic para hacer uso de un cache de Redis. 
    
 ---
 
