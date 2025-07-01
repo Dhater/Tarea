@@ -107,7 +107,6 @@ def index_directory(index_name, dir_path, fields, id_field):
                     }
                     if doc_id:
                         action["_id"] = doc_id
-                        # Guarda el ID en Redis para usarlo luego en consultas
                         redis_client.setex(f"{index_name}:{doc_id}", 86400, "indexed")
 
                     actions.append(action)
@@ -183,10 +182,8 @@ if __name__ == "__main__":
         print("Esperando 30 segundos antes de procesar el siguiente índice...")
         time.sleep(30)
 
-    # --- Consulta con caché Redis después de indexar todo ---
     print("\n🔁 Ejecutando consultas cacheadas con Redis después de indexar...")
 
-    # Escoge índice para consulta, o usa el primero que indexaste
     index_for_query = INDEX_NAME_DEFAULT
     doc_ids = get_ids_from_redis(index_for_query)
 
