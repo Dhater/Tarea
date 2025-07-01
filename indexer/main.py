@@ -2,6 +2,9 @@ import os
 import glob
 import time
 from elasticsearch import Elasticsearch, helpers
+import redis
+
+redis_client = redis.Redis(host="redis", port=6379, db=0)  # asegúrate del hostname en Docker
 
 ES_HOST = "http://elasticsearch:9200"
 es = Elasticsearch(ES_HOST)
@@ -93,22 +96,34 @@ def index_directory(index_name, dir_path, fields, id_field):
                 doc = parse_line(line, fields)
                 if doc:
                     doc_id = doc.get(id_field)
+
+
+                    cache_key = f"{index_name}:{doc_id}"
+                    if doc_id and redis_client.exists(cache_key):
+                        print(f"🔁 Documento con ID '{doc_id}' ya cacheado. Omitiendo indexación.")
+                        continue
+
                     action = {
                         "_index": index_name,
                         "_source": doc,
                     }
                     if doc_id:
                         action["_id"] = doc_id
+                        redis_client.setex(cache_key, 86400, "indexed")
+
                     actions.append(action)
                     total_indexed += 1
+
                     if len(actions) >= 500:
                         helpers.bulk(es, actions, refresh=True)
                         actions = []
+
     if actions:
         helpers.bulk(es, actions, refresh=True)
 
     print(f"✅ Indexación para índice '{index_name}' finalizada: {total_indexed} documentos indexados.\n")
     return total_indexed
+
 
 def wait_for_index_data(index_name):
     print(f"Verificando que el índice '{index_name}' tenga documentos...")
