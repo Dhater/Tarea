@@ -16,13 +16,13 @@ Este proyecto implementa un **pipeline de procesamiento de datos** totalmente au
 4. **Analizador de Datos**
    Procesa los datos limpios y genera resultados estructurados por **tipo**, **ciudad** y **fecha** en `data/output/por_{Categoria}/`.
    
-6. **Indexador de Datos**
+5. **Indexador de Datos**
    Toma los datos estructurados por el analizador y los indexa a una base de datos elasticsearch.
 
-7. **Visualización de Datos**
+6. **Visualización de Datos**
    Presenta los datos indexados de manera visualmente atractiva, utilizando gráficos y métricas claras.
    
-8. **Generador de trafico ElasticSearch**
+7. **Generador de trafico ElasticSearch**
    Se genera trafico de consultas Elastic para hacer uso de un cache de Redis. 
    
 ---
