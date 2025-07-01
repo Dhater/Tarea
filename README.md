@@ -1,6 +1,6 @@
-# 🚦 Sistema de Extracción, Filtrado y Análisis de Datos de Tráfico (Waze)
+# 🚦 Sistema de Extracción, Filtrado, Análisis y Visualización de Datos y Tráfico (Waze)
 
-Este proyecto implementa un **pipeline de procesamiento de datos** totalmente automatizado mediante **contenedores Docker**. Desde la recolección hasta el análisis final, todo ocurre al levantar los servicios definidos.
+Este proyecto implementa un **pipeline de procesamiento de datos** totalmente automatizado mediante **contenedores Docker**. Desde la recolección hasta la visualización final, todo ocurre al levantar los servicios definidos.
 
 ## 🧩 Componentes del sistema
 
@@ -15,7 +15,14 @@ Este proyecto implementa un **pipeline de procesamiento de datos** totalmente au
 
 4. **Analizador de Datos**
    Procesa los datos limpios y genera resultados estructurados por **tipo**, **ciudad** y **fecha** en `data/output/por_{Categoria}/`.
+   
+6. **Indexador de Datos**
+   Toma los datos estructurados por el analizador y los indexa a una base de datos elasticsearch.
 
+7. **Visualización de Datos**
+   Presenta los datos indexados de manera visualmente atractiva, utilizando gráficos y métricas claras.
+   
+   
 ---
 
 ## ⚙️ ¿Cómo usarlo?
@@ -44,24 +51,26 @@ Este proyecto implementa un **pipeline de procesamiento de datos** totalmente au
    * Los eventos se guardarán en `shared/input/`.
    * Hadoop/Pig los filtrará y transformará, guardando el resultado limpio como Pig Storage en `shared/data/output/filtrados`.
    * El analizador procesará los datos limpios y mostrará estadísticas organizadas.
+   * El indexador de datos ingresara los datos a elasticsearch.
+   * El visualizador de datos podrá mostrar gráficos gracias a los datos indexados
 
 ---
 
-## 📁 Archivos de salida esperados
+## 📁 Datos indexados esperados.
 
-Después de ejecutar el pipeline, encontrarás los resultados en:
+Luego de indexar los datos se espera ver en el apartado de Index Managment los datos estructurados ya ingresados en elastic, como algo así:
 
-* **Archivo limpio filtrado:**
-  `Filtro/data/output/filtrados/part-m-00000`
-
-* **Datos analizados:**
-
-  * Por fecha: `Filtro/data/output/por_fecha/part-r-00000`
-  * Por tipo: `Filtro/data/output/por_tipo/part-r-00000`
-  * Por ciudad: `Filtro/data/output/por_ciudad/part-r-00000`
-
----
+`incidentes_por_ciudad`
+`incidentes_por_fecha`
+`incidentes_por_tipo`
+`incidentes_trafico`
 
 ## 📝 Notas finales
 
 Este sistema permite automatizar el flujo completo de análisis de datos de tráfico urbano desde su extracción hasta su análisis final, facilitando la obtención de insights relevantes sin intervención manual.
+
+🛠️ En caso de producirse un error al indexar los datos en Elasticsearch, puedes reiniciar el servicio de indexación ejecutando el siguiente comando en la terminal:
+
+```bash
+docker compose restart indexer
+```
