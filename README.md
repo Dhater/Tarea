@@ -65,3 +65,8 @@ Después de ejecutar el pipeline, encontrarás los resultados en:
 ## 📝 Notas finales
 
 Este sistema permite automatizar el flujo completo de análisis de datos de tráfico urbano desde su extracción hasta su análisis final, facilitando la obtención de insights relevantes sin intervención manual.
+
+🛠️ En caso de producirse un error al indexar los datos en Elasticsearch, puedes reiniciar el servicio de indexación ejecutando el siguiente comando`en la terminal:
+
+
+`docker compose restart indexer`
